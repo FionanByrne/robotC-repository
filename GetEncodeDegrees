@@ -1,0 +1,21 @@
+task main()
+{
+  //Reset encoders
+  nMotorEncoder[motorC] = 0;
+  nMotorEncoder[motorB] = 0;
+
+  //Some time to unplug the cable from the robot so that it does not interfere with the turning.
+  wait1Msec(5000);
+
+  //Perform a point turn to the left. We will use lower power values for more accuracy.
+  motor[motorC] = -20;
+  motor[motorB] = 20;
+
+  //Since the wheels may go at slightly different speeds due to manufacturing tolerances, etc.,
+  //we need to test both encoders and control both motors separately. This may result in one motor
+  //going for longer than another but it will ultimately result in a much more accurate turn.
+  while(nMotorEncoder[motorB] < 200 || nMotorEncoder[motorC] > -200) {
+    if(nMotorEncoder[motorB] > 200) {motor[motorB] = 0;}
+    if(nMotorEncoder[motorC] < -200) {motor[motorC] = 0;}
+  }
+}
