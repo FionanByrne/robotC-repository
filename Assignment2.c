@@ -7,102 +7,101 @@
 
 //Moves forward x seconds
 void moveForward (int x) {
- 	 	motor[Left] = 30;
- 		motor[Right] = 30;
- 		wait1Msec(x * 1000);
+	motor[Left] = 30;
+	motor[Right] = 30;
+	wait1Msec(x * 1000);
 }
 
 //Turns right approx x degrees
 //Did some tests and x*9 gave us the approximate correct angle
 void turnRight(int x) {
- 	 	motor[Left] = 20;
- 		motor[Right] = -20;
- 		wait1Msec(x*9);
+	motor[Left] = 20;
+	motor[Right] = -20;
+	wait1Msec(x*9);
 }
 
 //turns left approx x degrees
 void turnLeft(int x) {
- 	 	motor[Left] = -20;
- 		motor[Right] = 20;
- 		wait1Msec(x*9);
+	motor[Left] = -20;
+	motor[Right] = 20;
+	wait1Msec(x*9);
 }
 
-bool walledRoom(){
+void WalledRoom() {
 
 }
 
+void FireRoom() {
 
+}
+
+void SurviorRoom() {
+
+}
+
+void EmptyRoom() {
+
+}
 
 
 task main(){
-//---------------------------------------------------Stage 1-------------------------------------------------------
-
-	if (walledRoom)
-		//TODO: Go forward Xcm
-a
-	else(
-
-
-
-
-
-
-
-
-
-
-
-	//Find Entrance
-
+	//---------------------------------------------------Stage 1-----------------------------------------------------
+	int WallDistance = 20;
 	int i = 0;
 
-	WallDistance
-
 	while(i<4){
-		if(sonar	< WallDistance){
+		if(SensorValue[Sonar]	< WallDistance){
 			WalledRoom();
 		}
 		else{
-			moveForward(SECOND_DIST);
-			while(Angle < TURN_ANGLE){ //Rotate Clockwise
+			//Move Forward Slightly to get ready to check for survivor
+			moveForward(2);
+			//Use Encoders here to turn to around 130 degrees
+			while(Angle < 130){ //Rotate Clockwise
 				int LowestDistance = 30000;
-				Left = -10;
-				Right = 10;
+				while(SensorValue(Sonar)>LowestDistance){
+					motor[Left] = -10;
+					motor[Right] = 10;
 
-				if(SensorValue(Sonar) < LowestDistance){
-					LowestDistance = SensorValue(Sonar);
-				}
-			}
-			//Senario 1
-			if(LowestDistance<SurvivorDistance)
-				do{
-					//ROTATE COUNTER-CLOCKWISE
-			}while(//SensorValue(Sonar)>LowestDistance);
-			else{
-				//Rotate back
-
-			else{
-				clearTimer[T1];
-				bool isFireRoom = false;
-
-				while(time1[T1] < 3000){
-					Left = 20;
-					Right = 20;
-
-					if(SensorValue(Colour) == red){
-						isFireRoom = true;
-						break;
+					if(SensorValue(Sonar) < LowestDistance){
+						LowestDistance = SensorValue(Sonar);
 					}
 				}
 
-				if(isFireRoom == true) {
-					FireRoom();
+				//SurvivorDistance is the distance we would expect the survivor to be at
+				int SurvivorDistance = 10;
+				//If the distance is closer than we would expect in a clear room, we must have picked up the survivor with the sonar
+				if(LowestDistance<SurvivorDistance){
+					while(SensorValue(Sonar)>LowestDistance){
+						motor[Left] = 10;
+						motor[Right] = -10;
+					}
+					SurviorRoom();
 				}
+
 				else{
-					ClearRoom();
+					clearTimer(T1);
+					bool isFireRoom = false;
+
+					while(time1[T1] < 3000){
+						motor[Left] = 20;
+						motor[Right] = 20;
+
+						if(SensorValue(Colour) == 5){
+							isFireRoom = true;
+							break;
+						}
+					}
+
+					if(isFireRoom == true) {
+						FireRoom();
+					}
+					else{
+						EmptyRoom();
+					}
 				}
 			}
+			i++;
 		}
-		i++;
 	}
 }
