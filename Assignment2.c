@@ -150,16 +150,27 @@ void EmptyRoom() {
 	wait1Msec(3000);
 }
 
+boolean detectWalledRoom() {
+		int frontDistance, backDistance;
+		frontDistance = SensorValue[Sonar];
+		wait1Msec(2000); //Wait 2 seconds
+		turnRight(180);
+		backDistance = SensorValue[Sonar];
+		wait1Msec(2000);//Wait 2 seconds
+		turnLeft(180);
+		return(frontDistance < backDistance);
+}
+
 
 task main(){
 	int WallDistance = 20;
-	int i = 0;
+	int room = 0;
 
 	motor[Lift] = 10;
 	wait1Msec(1500);
 
-	while(i<4){
-		if(SensorValue[Sonar]	< WallDistance){
+	while(room<4){
+		if(detectWalledRoom()){
 			WalledRoom();
 		}
 		else{
@@ -219,6 +230,6 @@ task main(){
 				}
 			}
 		}
-		i++;
+		room++;
 	}
 }
