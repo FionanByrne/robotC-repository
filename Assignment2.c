@@ -159,7 +159,7 @@ bool detectWalledRoom() {
 
 task main(){
 	int i = 0;
-
+	bool isFireRoom;
 	motor[Lift] = 10;
 	wait1Msec(1500);
 
@@ -212,7 +212,7 @@ task main(){
 				//If we aren't in the survivor room, we turn back 130 so we face straight again
 				turnLeft(130);
 
-				bool isFireRoom = false;
+				isFireRoom = false;
 
 				//Here we check if it is the fire room or not
 				//We go forward for 3s, if at any point the light sensor picks up red
