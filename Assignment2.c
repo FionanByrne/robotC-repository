@@ -212,14 +212,13 @@ task main(){
 				//If we aren't in the survivor room, we turn back 130 so we face straight again
 				turnLeft(130);
 
-				clearTimer(T1);
 				bool isFireRoom = false;
 
 				//Here we check if it is the fire room or not
 				//We go forward for 3s, if at any point the light sensor picks up red
 				//The robot stop s moving forward and runs the FireRoom function
 				//If the robot doesnt pick up red, we know we are in the empty room and run that function
-				while(time1[T1] < 3000){
+				while(SensorValue(Sonar) > 7){
 					motor[Left] = 20;
 					motor[Right] = 20;
 
