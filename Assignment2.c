@@ -31,34 +31,36 @@ void moveForward (int cm) {
 	motor[Right]= 20;
 
 	while(nMotorEncoder[Left] < dist || nMotorEncoder[Right] < dist){}
-	motor[Left] = 0;
-	motor[Right] = 0;
+	resetMotors();
 }
 
 //Turns right x degrees
-//Did some tests with encoders and found multiplying by 93/45 gave us the correct angle to turn
+//Did some tests with encoders and found multiplying by 2 gave us the correct angle to turn
 void turnRight(int x) {
 	//Reset encoders`
 	nMotorEncoder[Left] = 0;
 	nMotorEncoder[Right] = 0;
 
-	//Perform a point turn to the left. We will use lower power values for more accuracy.
+	//Perform a point turn to the right. We will use lower power values for more accuracy.
 	motor[Left] = 20;
 	motor[Right] = -20;
 
-	int Angle = x*(93/45);
+	int Angle = x*(90/45);
 
 	//Since the wheels may go at slightly different speeds due to manufacturing tolerances, etc.,
 	//we need to test both encoders and control both motors separately. This may result in one motor
 	//going for longer than another but it will ultimately result in a much more accurate turn.
-	while(nMotorEncoder[Right] < -Angle || nMotorEncoder[Left] > Angle) {
-		if(nMotorEncoder[Right] > -Angle) {motor[Right] = 0;}
-		if(nMotorEncoder[Left] < Angle) {motor[Left] = 0;}
+
+	while(nMotorEncoder[Right] > -Angle || nMotorEncoder[Left] < Angle) {
+		if(nMotorEncoder[Right] < -Angle) {motor[Right] = 0;}
+		if(nMotorEncoder[Left] > Angle) {motor[Left] = 0;}
 	}
+
+	resetMotors();
 }
 
 //Turns left x degrees
-//Did some tests with encoders and found multiplying by 93/45 gave us the correct angle to turn
+//Did some tests with encoders and found multiplying by 2 gave us the correct angle to turn
 void turnLeft(int x) {
 	//Reset encoders`
 	nMotorEncoder[Left] = 0;
@@ -68,15 +70,18 @@ void turnLeft(int x) {
 	motor[Left] = -20;
 	motor[Right] = 20;
 
-	int Angle = x*(93/45);
+	int Angle = x*(90/45);
 
 	//Since the wheels may go at slightly different speeds due to manufacturing tolerances, etc.,
 	//we need to test both encoders and control both motors separately. This may result in one motor
 	//going for longer than another but it will ultimately result in a much more accurate turn.
-	while(nMotorEncoder[Right] < Angle || nMotorEncoder[Left] > -Angle) {
-		if(nMotorEncoder[Right] > Angle) {motor[Right] = 0;}
+
+	while(nMotorEncoder[Left] > -Angle || nMotorEncoder[Right] < Angle) {
 		if(nMotorEncoder[Left] < -Angle) {motor[Left] = 0;}
+		if(nMotorEncoder[Right] > Angle) {motor[Right] = 0;}
 	}
+
+	resetMotors();
 }
 
 void WalledRoom() {
@@ -85,13 +90,13 @@ void WalledRoom() {
 
 	turnRight(90);
 
-	untilWall(7);
+	moveForward(10);
 
 	turnLeft(90);
 
 	untilWall(7);
 
-	turnRight();
+	turnRight(90);
 
 	moveForward(2);
 }
@@ -135,9 +140,16 @@ void SurviorRoom() {
 void EmptyRoom() {
 	untilWall(7);
 
+	//Sets the sound volume of the EV3 speaker to 100
+	setSoundVolume(100);
+	//Play the sound file analyze
+	playSoundFile("Analyze");
+	// Gives the file 2 seconds to play
+	sleep(2000);
+
 	turnRight(90);
 
-	moveForward(6);
+	moveForward(8);
 }
 
 
@@ -145,11 +157,9 @@ bool detectWalledRoom() {
 	writeDebugStream("DetectWalledRoom->");
 
 		int frontDistance = SensorValue(Sonar);
-		resetMotors();
 		wait1Msec(1000); //Wait 1 seconds
 		turnRight(180);
 		int backDistance = SensorValue(Sonar);
-		resetMotors();
 		wait1Msec(1000);//Wait 1 seconds
 		turnLeft(180);
 		writeDebugStream("front: %d, back: %d->", frontDistance, backDistance);
@@ -159,9 +169,8 @@ bool detectWalledRoom() {
 
 task main(){
 	int i = 0;
-	bool isFireRoom;
+
 	motor[Lift] = 10;
-	wait1Msec(1500);
 
 	while(i<4){
 	writeDebugStream("Start->");
@@ -176,7 +185,7 @@ task main(){
 			//Move Forward Slightly to get ready to check for survivorRooom
 			moveForward(4);
 			//Had to double the amount to turn at half the speed for a more accurate sonar reading.
-			int SurvivorDegrees = 130*(93/45)*2;
+			int SurvivorDegrees = 130*(2)*2;
 			//Any large value just as a starting point
 			int LowestDistance = 30000;
 
@@ -212,13 +221,14 @@ task main(){
 				//If we aren't in the survivor room, we turn back 130 so we face straight again
 				turnLeft(130);
 
-				isFireRoom = false;
+				clearTimer(T1);
+				bool isFireRoom = false;
 
 				//Here we check if it is the fire room or not
 				//We go forward for 3s, if at any point the light sensor picks up red
 				//The robot stop s moving forward and runs the FireRoom function
 				//If the robot doesnt pick up red, we know we are in the empty room and run that function
-				while(SensorValue(Sonar) > 7){
+				while(time1[T1] < 3000){
 					motor[Left] = 20;
 					motor[Right] = 20;
 
