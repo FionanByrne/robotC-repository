@@ -15,6 +15,12 @@ void untilWall(int dist){
 	motor[Right] = 0;
 }
 
+/*void untilBlack() {
+	while(SensorValue(Sonar) != black){
+		motor[Left] = 20;
+		motor[Right] = 20;
+	}
+*/
 void resetMotors () {
 	motor[Left] = 0;
 	motor[Right] = 0;
@@ -100,6 +106,8 @@ void WalledRoom() {
 }
 
 void SurvivorRoom() {
+	moveForward(10);
+
 	int SurvivorDegrees = 130*(2);
 	//Any large value just as a starting point
 	int LowestDistance = 30000;
@@ -109,8 +117,8 @@ void SurvivorRoom() {
 	nMotorEncoder[Right] = 0;
 
 	//Perform a point turn to the right. We will use lower power values for more accuracy.
-	motor[Left] = 10;
-	motor[Right] = -10;
+	motor[Left] = 8;
+	motor[Right] = -8;
 
 	//Use Encoders here to turn to around 130 degrees
 	//Here we are checking if at any point the distance is less than we would expect it to be
@@ -129,7 +137,7 @@ void SurvivorRoom() {
 	resetMotors();
 
 	//Turn until we see the survivor again
-	while(SensorValue(Sonar)>=LowestDistance){
+	while(SensorValue(Sonar)>=LowestDistance+2){
 		motor[Left] = -10;
 		motor[Right] = 10;
 	}
@@ -143,22 +151,21 @@ void SurvivorRoom() {
 	motor[Lift] = -10;
 	wait1Msec(1400);
 
-	moveForward(4);
+	moveForward(6);
 	motor[Left] = 0;
 	motor[Right] = 0;
 
 	motor[Lift] = 10;
 	wait1Msec(1400);
 
-	moveForward(8);
+	turnLeft(60);
+	untilWall(7);
+	turnRight(90);
+	moveForward(20);
 }
 
 void FireRoom() {
 	writeDebugStream("FireRoom->");
-	while(SensorValue[Sonar] < 15){
-		motor[Left] = -30;
-		motor[Right] = -30;
-	}
 
 	turnRight(180);
 
@@ -167,7 +174,7 @@ void FireRoom() {
 	wait1Msec(2000);
 
 	turnLeft(90);
-	moveForward(4);
+	moveForward(55);
 }
 
 void EmptyRoom() {
@@ -182,7 +189,7 @@ void EmptyRoom() {
 
 	turnRight(90);
 
-	moveForward(8);
+	moveForward(58);
 }
 
 
@@ -210,6 +217,7 @@ task main(){
 			WalledRoom();
 		}
 		else {
+					writeDebugStream("DetectFireRoom->");
 			//If we are not in the walled room we can check for the other room
 			clearTimer(T1);
 			bool isFireRoom = false;
@@ -234,10 +242,10 @@ task main(){
 			}
 			else{
 				if(SensorValue(Sonar) < 20){
-						SurvivorRoom();
+					EmptyRoom();
 				}
 				else{
-					EmptyRoom();
+						SurvivorRoom();
 				}
 			}
 		}
