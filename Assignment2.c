@@ -1,4 +1,4 @@
-#pragma config(Sensor, S2,     Colour,         sensorEV3_Color)
+#pragma config(Sensor, S3,     Colour,         sensorEV3_Color, modeEV3Color_Color)
 #pragma config(Sensor, S4,     Sonar,          sensorEV3_Ultrasonic)
 #pragma config(Motor,  motorA,          Lift,          tmotorEV3_Medium, PIDControl, encoder)
 #pragma config(Motor,  motorB,          Left,          tmotorEV3_Large, PIDControl, driveLeft, encoder)
@@ -25,7 +25,7 @@ void moveForward (int cm) {
 	nMotorEncoder[Left] = 0;
 	nMotorEncoder[Right] = 0;
 
-	int dist = cm*(2500/123);
+	int dist = cm*(2500/118);
 
 	motor[Left]= 20;
 	motor[Right]= 20;
@@ -90,18 +90,71 @@ void WalledRoom() {
 
 	turnRight(90);
 
-	moveForward(10);
+	moveForward(20);
 
 	turnLeft(90);
 
 	untilWall(7);
 
 	turnRight(90);
+}
 
-	moveForward(2);
+void SurvivorRoom() {
+	int SurvivorDegrees = 130*(2);
+	//Any large value just as a starting point
+	int LowestDistance = 30000;
+
+	//Reset encoders
+	nMotorEncoder[Left] = 0;
+	nMotorEncoder[Right] = 0;
+
+	//Perform a point turn to the right. We will use lower power values for more accuracy.
+	motor[Left] = 10;
+	motor[Right] = -10;
+
+	//Use Encoders here to turn to around 130 degrees
+	//Here we are checking if at any point the distance is less than we would expect it to be
+	//If this is true the unexpected distance must be the survivor
+	//We aren't able to use the normal turn left function here as we need to run a test for
+	//checking the lowest distance while in the loop to update the encoders
+	while(nMotorEncoder[Right] > -SurvivorDegrees || nMotorEncoder[Left] < SurvivorDegrees) {
+		if(nMotorEncoder[Right] < -SurvivorDegrees) {motor[Right] = 0;}
+		if(nMotorEncoder[Left] > SurvivorDegrees) {motor[Left] = 0;}
+
+		if(SensorValue(Sonar) < LowestDistance){
+			LowestDistance = SensorValue(Sonar);
+		}
+	}
+
+	resetMotors();
+
+	//Turn until we see the survivor again
+	while(SensorValue(Sonar)>=LowestDistance){
+		motor[Left] = -10;
+		motor[Right] = 10;
+	}
+
+	writeDebugStream("SurvivorRoom->");
+	untilWall(13);
+
+	motor[Left] = 0;
+	motor[Right] = 0;
+
+	motor[Lift] = -10;
+	wait1Msec(1400);
+
+	moveForward(4);
+	motor[Left] = 0;
+	motor[Right] = 0;
+
+	motor[Lift] = 10;
+	wait1Msec(1400);
+
+	moveForward(8);
 }
 
 void FireRoom() {
+	writeDebugStream("FireRoom->");
 	while(SensorValue[Sonar] < 15){
 		motor[Left] = -30;
 		motor[Right] = -30;
@@ -114,26 +167,6 @@ void FireRoom() {
 	wait1Msec(2000);
 
 	turnLeft(90);
-	moveForward(4);
-}
-
-void SurviorRoom() {
-	untilWall(13);
-
-
-	motor[Left] = 0;
-	motor[Right] = 0;
-
-	motor[Lift] = -10;
-	wait1Msec(1400);
-
-	moveForward(2);
-	motor[Left] = 0;
-	motor[Right] = 0;
-
-	motor[Lift] = 10;
-	wait1Msec(1400);
-
 	moveForward(4);
 }
 
@@ -156,14 +189,11 @@ void EmptyRoom() {
 bool detectWalledRoom() {
 	writeDebugStream("DetectWalledRoom->");
 
-		int frontDistance = SensorValue(Sonar);
-		wait1Msec(1000); //Wait 1 seconds
-		turnRight(180);
-		int backDistance = SensorValue(Sonar);
-		wait1Msec(1000);//Wait 1 seconds
-		turnLeft(180);
-		writeDebugStream("front: %d, back: %d->", frontDistance, backDistance);
-		return(frontDistance < backDistance);
+	moveForward(20);
+	wait1Msec(1000); //Wait 1 seconds
+	int frontDistance = SensorValue(Sonar);
+	writeDebugStream("front: %d ->", frontDistance);
+	return(frontDistance < 24);
 }
 
 
@@ -173,80 +203,44 @@ task main(){
 	motor[Lift] = 10;
 
 	while(i<4){
-	writeDebugStream("Start->");
+		writeDebugStream("Start->");
 		//If the distance is less than the expected distance to a wall
 		//we must be in the walled room
 		if(detectWalledRoom()){
 			WalledRoom();
 		}
-		/*
-		else{
-			//If we are not in the walled room we can check for the other rooms
-			//Move Forward Slightly to get ready to check for survivorRooom
-			moveForward(4);
-			//Had to double the amount to turn at half the speed for a more accurate sonar reading.
-			int SurvivorDegrees = 130*(2)*2;
-			//Any large value just as a starting point
-			int LowestDistance = 30000;
+		else {
+			//If we are not in the walled room we can check for the other room
+			clearTimer(T1);
+			bool isFireRoom = false;
 
-			motor[Left] = -10;
-			motor[Right] = 10;
+			//Here we check if it is the fire room or not
+			//We go forward for 3s, if at any point the light sensor picks up red
+			//The robot stops moving forward and runs the FireRoom function
+			//If the robot doesnt pick up red, we know we check for the remaining 2 rooms
+			while(time1[T1] < 2000){
+				motor[Left] = 20;
+				motor[Right] = 20;
 
-			//Use Encoders here to turn to around 130 degrees
-			//Here we are checking if at any point the distance is less than we would expect it to be
-			//If this is true the unexpected distance must be the survivor
-			//We aren't able to use the normal turn left function here as we need to run a test for
-			//checking the lowest distance while in the loop to update the encoders
-			while(nMotorEncoder[Right] < -SurvivorDegrees || nMotorEncoder[Left] > SurvivorDegrees) {
-				if(nMotorEncoder[Right] > -SurvivorDegrees) {motor[Right] = 0;}
-				if(nMotorEncoder[Left] < SurvivorDegrees) {motor[Left] = 0;}
-
-				if(SensorValue(Sonar) < LowestDistance){
-					LowestDistance = SensorValue(Sonar);
+				if(SensorValue(Colour) == 5){
+					isFireRoom = true;
+					break;
+					writeDebugStream("FoundFireRoom->");
 				}
 			}
 
-			//SurvivorDistance is the distance we would expect the survivor to be at
-			int SurvivorDistance = 10;
-			//If the distance is closer than we would expect in a clear room, we must have picked up the survivor with the sonar
-			if(LowestDistance<SurvivorDistance){
-				while(SensorValue(Sonar)>LowestDistance){
-					motor[Left] = 10;
-					motor[Right] = -10;
-				}
-				SurviorRoom();
+			if(isFireRoom == true) {
+				FireRoom();
 			}
-
 			else{
-				//If we aren't in the survivor room, we turn back 130 so we face straight again
-				turnLeft(130);
-
-				clearTimer(T1);
-				bool isFireRoom = false;
-
-				//Here we check if it is the fire room or not
-				//We go forward for 3s, if at any point the light sensor picks up red
-				//The robot stop s moving forward and runs the FireRoom function
-				//If the robot doesnt pick up red, we know we are in the empty room and run that function
-				while(time1[T1] < 3000){
-					motor[Left] = 20;
-					motor[Right] = 20;
-
-					if(SensorValue(Colour) == 5){
-						isFireRoom = true;
-						break;
-					}
-				}
-
-				if(isFireRoom == true) {
-					FireRoom();
+				if(SensorValue(Sonar) < 20){
+						SurvivorRoom();
 				}
 				else{
 					EmptyRoom();
 				}
 			}
 		}
-		*/
 		i++;
 	}
 }
